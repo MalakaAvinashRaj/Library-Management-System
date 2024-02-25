@@ -1,0 +1,18 @@
+{% extends 'base.html' %} {% block content %}
+<div class="container mt-5">
+  <h2>Your Transaction History</h2>
+  {% for transaction in transactions %}
+  <ul class="list-group mb-4">
+    <li class="list-group-item">
+      Book: {{ transaction.book.title }}
+    </li>
+    <li class="list-group-item">
+        Checked Out: {{ transaction.checkout_date }}
+    </li>
+    <li class="list-group-item">
+        Return Date: {{ transaction.return_date}}
+    </li>
+</ul>
+{% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6 offset-md-3">
+        <h2>My Reservations</h2>
+        {% if reservations %}
+        {% for reservation in reservations %}
+            <ul class="list-group mb-4">
+                <li class="list-group-item">
+                    Book: {{ reservation.book.title }}
+                </li>
+                <li class="list-group-item">
+                    Reserved on: {{ reservation.reservation_date|date:"N j, Y, H:i" }}
+                </li>
+                <li class="list-group-item">
+                    Return by: {{ reservation.return_date|date:"N j, Y, H:i" }}
+                </li>
+                <li class="list-group-item">
+                    <form action="{% url 'return_book' reservation.book.id %}" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure?')">Return Book</button>
+                    </form>
+                    <a href="/renew_book/{{reservation.book.id}}"><button type="submit" class="btn btn-primary">Renew</button></a>
+                </li>
+            </ul>
+            {% endfor %}
+        {% else %}
+            <p>No reservations found.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

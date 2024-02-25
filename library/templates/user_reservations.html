@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Your Reservations</h2>
+    <ul class="list-group">
+        {% for reservation in user_reservations %}
+        <li class="list-group-item">
+            Book: {{ reservation.book.title }} - Reserved on: {{ reservation.reservation_date }}
+            <form action="{{ url_for('cancel_reservation', reservation_id=reservation.id) }}" method="post" style="display:inline;">
+                <button type="submit" class="btn btn-danger btn-sm">Cancel Reservation</button>
+            </form>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}
