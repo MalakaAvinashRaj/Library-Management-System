@@ -7,6 +7,7 @@ from django.contrib.auth.forms import UserCreationForm
 from .models import Book, Transaction, Reservation
 from django.utils import timezone
 from django.contrib.auth.models import User
+import sys
 
 @login_required
 def show_books(request):
@@ -26,8 +27,8 @@ def add_book(request):
 
 @login_required
 def remove_book(request, book_id):
-    if request.method == 'POST':  # Ensure that the view only processes POST requests for security reasons
-        book = get_object_or_404(Book, pk=book_id)
+    if Book.objects.get(id=book_id): 
+        book = Book.objects.get(id=book_id)
         book.delete()
         messages.success(request, 'Book removed successfully.')
     else:
@@ -36,7 +37,7 @@ def remove_book(request, book_id):
 
 @login_required
 def return_book(request, book_id):
-    book  = Book.objects.get(id=book_id)
+    book = Book.objects.get(id=book_id)
     reservation = get_object_or_404(Reservation, book=book, user=request.user)
     reservation.delete()
     
