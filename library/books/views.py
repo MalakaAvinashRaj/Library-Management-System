@@ -3,27 +3,42 @@ from django.urls import reverse
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login, logout, authenticate
-from django.contrib.auth.forms import UserCreationForm
-from .models import Book, Transaction, Reservation
+from .models import Book, Transaction, Reservation, Category
 from django.utils import timezone
 from django.contrib.auth.models import User
-import sys
 
 @login_required
 def show_books(request):
     books = Book.objects.all()
-    return render(request, 'books.html', {'books': books})
+    user_reservations = Reservation.objects.filter(user=request.user).values_list('book_id', flat=True)
+    return render(request, 'books.html', {'books': books, 'user_reservations': user_reservations})
 
 @login_required
 def add_book(request):
+    categories = Category.objects.all()
     if request.method == 'POST':
+        # Get form data
         title = request.POST.get('title')
         author = request.POST.get('author')
         isbn = request.POST.get('isbn')
-        Book.objects.create(title=title, author=author, isbn=isbn, status='available')
+        category_id = request.POST.get('category')  # Capture the category ID from the form
+        quantity = request.POST.get('quantity', 1)  # Default to 1 if not provided
+
+        # Fetch the Category instance based on the submitted ID
+        category = get_object_or_404(Category, id=category_id)
+
+        # Now include the category and quantity when creating the book
+        book = Book.objects.create(
+            title=title,
+            author=author,
+            isbn=isbn,
+            category=category,  # Set the category here
+            quantity=quantity,
+            status='available'
+        )
         messages.success(request, 'Book added successfully.')
         return redirect(reverse('show_books'))
-    return render(request, 'add_book.html')
+    return render(request, 'add_book.html', {'categories': categories})
 
 @login_required
 def remove_book(request, book_id):
@@ -36,50 +51,74 @@ def remove_book(request, book_id):
     return redirect(reverse('show_books'))
 
 @login_required
-def return_book(request, book_id):
-    book = Book.objects.get(id=book_id)
-    reservation = get_object_or_404(Reservation, book=book, user=request.user)
-    reservation.delete()
+def return_book(request, reservation_id):
     
-    transaction = Transaction.objects.get(book=book, user=request.user)
-    transaction.return_date = timezone.now()
-    transaction.save()
-    transaction.book.status = 'available'
-    transaction.book.save()
-    messages.success(request, f'You have returned {transaction.book.title}.')
+    reservation = get_object_or_404(Reservation, id=reservation_id, user=request.user)
+    transaction = reservation.transaction
+    
+    if transaction :
+        transaction.return_date = timezone.now()
+        transaction.save()
+        book = transaction.book
+        
+        book.quantity += 1
+        book.save()
+            
+        if book.status == 'not available':
+            book.status = 'available'
+            book.save() 
+        reservation.delete()
+    
+        messages.success(request, f'You have returned {transaction.book.title}.')
+    else:
+        messages.error(request, 'No matching transaction found.')
+
     return redirect(reverse('show_books'))
 
 @login_required
 def reserve_book(request, book_id):
     book = get_object_or_404(Book, pk=book_id)
-    if book.status == 'available':
+    if book.status == 'available' and book.quantity > 0:
+        
+        # Create a transaction first
         return_date = timezone.now() + timezone.timedelta(days=14)
-        Reservation.objects.create(book=book, user=request.user, reservation_date=timezone.now(), return_date=return_date)
         transaction = Transaction.objects.create(book=book, user=request.user, checkout_date=timezone.now(), return_date=return_date)
         transaction.save()
-        book.status = 'not available'
+        
+         # Now create a reservation and link it to the transaction
+        Reservation.objects.create(book=book, user=request.user, reservation_date=timezone.now(), return_date=return_date, transaction=transaction)
+        
+        book.quantity -= 1
+        if book.quantity == 0:
+            book.status = 'not available'
         book.save()
         
         messages.success(request, f'{book.title} has been reserved.')
     else:
-        messages.error(request, 'This book is currently not available and cannot be reserved.')
+        messages.error(request, 'This book is currently Out of stock and cannot be reserved.')
     return redirect(reverse('show_books'))
-
-# @login_required
-# def cancel_reservation(request, reservation_id):
-#     reservation = get_object_or_404(Reservation, pk=reservation_id, user=request.user)
-#     book_id = reservation.book.id
-#     reservation.delete()
-    
-#     book = Book.objects.get(id=book_id)
-#     book.status = "available"
-#     book.save()
-#     messages.success(request, 'Reservation canceled successfully.')
-#     return redirect(reverse('show_books'))
-
 
 def index(request):
     return render(request, 'index.html')
+
+@login_required
+def book_detail(request, book_id):
+    # Fetch the book by ID
+    book = get_object_or_404(Book, id=book_id)
+
+    # Check if the user has a reservation for this book
+    user_has_reservation = Reservation.objects.filter(book=book, user=request.user).exists()
+
+    # Additional logic can go here, e.g., displaying a special message if the user has the reservation
+    return render(request, 'book_detail.html', {
+        'book': book,
+        'user_has_reservation': user_has_reservation
+    })
+
+@login_required
+def my_books(request):
+    reservations = Reservation.objects.filter(user=request.user).select_related('book')
+    return render(request, 'my_books.html', {'reservations': reservations})
 
 @login_required
 def my_transactions(request):

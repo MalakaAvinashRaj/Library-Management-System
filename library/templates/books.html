@@ -3,14 +3,28 @@
 {% block content %}
 <h2>Books List</h2>
 <div class="list-group">
+    {% if books %}
     {% for book in books %}
     <div class="list-group-item list-group-item-action mb-4">
         <h5 class="mb-1">{{ book.title }}</h5>
         <p class="mb-1">Author: {{ book.author }}</p>
+        <p class="mb-1">Category: {{ book.category }}</p>
+        <p class="mb-1">Quantity: {{ book.quantity }}</p>
         <small>Status: {{ book.status }}</small>
         <div>
             {% if book.status == "available" %}
-                <a href="/reserve_book/{{book.id}}/"><button type="submit" class="btn btn-primary">Reserve Book</button></a>
+                {% if book.id in user_reservations %}
+                    <button type="button" class="btn btn-primary" disabled>Already Reserved</button>
+                {% else %}
+                    <a href="{% url 'reserve_book' book.id %}"><button type="submit" class="btn btn-primary">Reserve Book</button></a>
+                {% endif %}
+            {% endif %}
+            {% if book.status == "not available" %}
+                {% if book.id in user_reservations %}
+                    <button type="button" class="btn btn-primary" disabled>Already Reserved</button>
+                {% else %}
+                    <a href="{% url 'reserve_book' book.id %}"><button type="submit" disabled class="btn btn-primary">Not Available</button></a>
+                {% endif %}
             {% endif %}
             {% if user.is_staff %}
                 <a href="/remove_book/{{book.id}}/"><button type="submit" class="btn btn-danger">Remove Book</button></a>
@@ -18,5 +32,8 @@
         </div>
     </div>
     {% endfor %}
+    {% else %}
+        <p>No Books found.</p>
+    {% endif %}
 </div>
 {% endblock %}

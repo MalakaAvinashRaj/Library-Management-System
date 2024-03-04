@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Book, UserProfile, Transaction, Reservation
+from .models import Book, UserProfile, Transaction, Reservation, Category
 
 class BookAdmin(admin.ModelAdmin):
     list_display = ('title', 'author', 'isbn', 'status')  # Columns to display in the admin list view
@@ -18,3 +18,4 @@ admin.site.register(Transaction, TransactionAdmin)
 
 admin.site.register(UserProfile)  # No customizations for UserProfile
 admin.site.register(Reservation)  # No customizations for Reservation
+admin.site.register(Category)

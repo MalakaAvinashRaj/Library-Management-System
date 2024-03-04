@@ -17,11 +17,11 @@
                     Return by: {{ reservation.return_date|date:"N j, Y, H:i" }}
                 </li>
                 <li class="list-group-item">
-                    <form action="{% url 'return_book' reservation.book.id %}" method="post" style="display:inline;">
+                    <form action="{% url 'return_book' reservation.id %}" method="post" style="display:inline;">
                         {% csrf_token %}
                         <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure?')">Return Book</button>
                     </form>
-                    <a href="/renew_book/{{reservation.book.id}}"><button type="submit" class="btn btn-primary">Renew</button></a>
+                    <a href="{% url 'renew_book' reservation.book.id %}/"><button type="submit" class="btn btn-primary">Renew</button></a>
                 </li>
             </ul>
             {% endfor %}
